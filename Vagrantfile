@@ -8,9 +8,10 @@
 Vagrant.configure(2) do |config|
     config.vm.define :Web do |web_config|
         web_config.vm.box = "hashicorp/trusty64"
+        web_config.vm.box_url = "https://vagrantcloud.com/hashicorp/boxes/precise32/versions/1.0.0/providers/virtualbox.box"
         web_config.vm.forward_port 80, 8080
         web_config.vm.network :bridged
-        web_config.vm.network :hostonly, "192.168.100.10"
+        web_config.vm.network :private_network, ip: "192.168.100.10"
         web_config.vm.provision :ansible do |ansible|
             ansible.playbook = "playbook/webserver.yml"
             ansible.hosts = "webservers"
@@ -18,9 +19,10 @@ Vagrant.configure(2) do |config|
     end
     config.vm.define :db do |db_config|
         db_config.vm.box = "hashicorp/trusty64"
+        db_config.vm.box_url = "https://vagrantcloud.com/hashicorp/boxes/precise32/versions/1.0.0/providers/virtualbox.box"
         db_config.vm.forward_port 5432, 54322
         db_config.vm.network :bridged
-        db_config.vm.network :hostonly, "192.168.100.20"
+        db_config.vm.network :private_network, ip: "192.168.100.20"
         db_config.vm.provision :ansible do |ansible|
             ansible.playbook = "playbook/dbserver.yml"
             ansible.hosts = "dbservers"
