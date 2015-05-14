@@ -1,54 +1,49 @@
 ---
 
-- hosts: dbservers
-  sudo: True
+- hosts: webservers
   user: vagrant
+  sudo: True
+
+  vars:
+    app_name: project_name....
+    repo_url: https://github.com/.......
+    repo_remote: origin
+    repo_version: master
+    webapps_dir: /srv/webapps
+    wsgi_file: app.py
+    wsgi_callable: app
 
   tasks:
-    - name: update apt
-      action: command /usr/bin/apt-get update
+    - name: ensure log directory
+      action: file dest=${webapps_dir}/${app_name}/log state=directory
 
-    # This is necessary due to the box that is being used having an odd sudoers file
-    - name: update sudoers
-      action: copy src=templates/sudoers dest=/etc/sudoers
-
-    - name: install db server packages
-      action: apt pkg=$item state=present
-      with_items:
-        - postgresql
-        - postgresql-contrib
-        - libpq-dev
-        - python-dev
-        - python-setuptools
-
-    - name: install python libraries
-      action: easy_install name=psycopg2==2.4.5
-
-    - name: add postgres user to admin group
-      action: user name=postgres groups=admin append=yes
-
-    - name: update postgres db configuration
-      action: copy src=templates/postgresql.conf dest=/etc/postgresql/9.1/main/postgresql.conf
+    - name: deploy code from repository
+      action: git repo=$repo_url dest=${webapps_dir}/${app_name}/src remote=$repo_remote version=$repo_version
       notify:
-        - restart postgresql
+        - restart app
 
-    - name: update postgres client configuration
-      action: copy src=templates/pg_hba.conf dest=/etc/postgresql/9.1/main/pg_hba.conf
+    - name: install dependencies into virtualenv
+      action: pip requirements=${webapps_dir}/${app_name}/src/requirements.txt virtualenv=${webapps_dir}/${app_name}/venv state=present
+
+    - name: create supervisor program config
+      action: template src=templates/supervisor.ini dest=/etc/supervisor/${app_name}.ini
       notify:
-        - restart postgresql
+        - restart app
+
+    - name: create nginx site config
+      action: template src=templates/nginx_site.conf dest=/etc/nginx/sites-available/${app_name}.conf
+      notify:
+        - restart nginx
+
+    - name: link nginx config
+      action: file src=/etc/nginx/sites-available/${app_name}.conf dest=/etc/nginx/sites-enabled/${app_name}.conf state=link
+
+    - name: add app to supervisor
+      action: supervisorctl name=${app_name} state=present
 
   handlers:
-    - name: restart postgresql
-      action: service name=postgresql state=restarted
+    - name: restart app
+      action: supervisorctl name=${app_name} state=restarted
 
-- hosts: dbservers
-  sudo: True
-  user: vagrant
-  sudo_user: postgres
-
-  tasks:
-    - name: create a test database user
-      action: postgresql_user user=vagrant password=password
-
-    - name: create test database
-      action: postgresql_db name=vagrant_ansible_tutorial owner=vagrant
+    - name: restart nginx
+      action: service name=nginx state=restarted
