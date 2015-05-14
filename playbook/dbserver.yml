@@ -41,7 +41,7 @@
     - name: restart postgresql
       action: service name=postgresql state=restarted
 
-- hosts: dbservers
+- hosts: db
   sudo: True
   user: vagrant
   sudo_user: postgres

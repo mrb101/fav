@@ -11,8 +11,7 @@ Vagrant.configure(2) do |config|
         web_config.vm.box_url = "https://vagrantcloud.com/hashicorp/boxes/precise32/versions/1.0.0/providers/virtualbox.box"
         web_config.vm.network "forwarded_port", guest: 80, host: 8080
         web_config.vm.network :private_network, ip: "192.168.100.10"
-        config.vm.synced_folder "webapps/", "/srv/webapps"
-
+        web_config.vm.synced_folder "webapps/", "/srv/webapps"
         web_config.vm.provision :ansible do |ansible|
             ansible.playbook = "playbook/webserver.yml"
         end
